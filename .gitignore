@@ -6,3 +6,6 @@ dist
 .env
 .env.local
 *.tsbuildinfo
+server/prisma/*.db
+server/dist
+

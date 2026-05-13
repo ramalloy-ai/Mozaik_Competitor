@@ -1,17 +1,22 @@
+import type { SheetMaterial } from "./library";
+
 export type GrainDirection = "length" | "width" | "none";
 
-export interface Material {
-  id: string;
-  name: string;
-  thickness: number;
-  color: string;
-  hasGrain: boolean;
+export type EdgeKey = "front" | "back" | "left" | "right";
+
+export interface PartEdges {
+  front?: string;
+  back?: string;
+  left?: string;
+  right?: string;
 }
 
 export interface Part {
   id: string;
+  cabinetId: string;
+  cabinetName: string;
   name: string;
-  material: Material;
+  material: SheetMaterial;
   cutLength: number;
   cutWidth: number;
   cutThickness: number;
@@ -19,12 +24,16 @@ export interface Part {
   size: [number, number, number];
   position: [number, number, number];
   quantity: number;
+  edges: PartEdges;
 }
 
 export type DoorStyle = "none" | "single" | "double" | "drawerFront";
+export type CabinetKind = "base" | "wall" | "tall";
 
-export interface BaseCabinetSpec {
+export interface CabinetSpec {
   id: string;
+  name: string;
+  kind: CabinetKind;
   width: number;
   height: number;
   depth: number;
@@ -33,15 +42,32 @@ export interface BaseCabinetSpec {
   panelMaterialId: string;
   backMaterialId: string;
   doorMaterialId: string;
+  edgeBandingId: string;
+  doorStyleId: string;
+  hingeId: string;
+  pullId: string;
+  drawerSlideId: string | null;
   shelfCount: number;
   doorStyle: DoorStyle;
   doorGap: number;
   backInset: number;
+  roomX: number;
+  roomZ: number;
+  roomRotation: number;
+  roomY: number;
 }
 
 export interface Cabinet {
-  spec: BaseCabinetSpec;
+  spec: CabinetSpec;
   parts: Part[];
+}
+
+export interface Room {
+  id: string;
+  name: string;
+  widthX: number;
+  depthZ: number;
+  cabinets: CabinetSpec[];
 }
 
 export interface CutlistRow {
@@ -52,4 +78,5 @@ export interface CutlistRow {
   thickness: number;
   grain: GrainDirection;
   quantity: number;
+  edgeBandedMeters: number;
 }

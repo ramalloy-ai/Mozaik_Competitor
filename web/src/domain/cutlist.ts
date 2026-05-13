@@ -1,4 +1,5 @@
 import type { Cabinet, CutlistRow, Part } from "./types";
+import { partBandedMeters } from "./edgeBanding";
 
 function partKey(p: Part): string {
   return [
@@ -8,6 +9,7 @@ function partKey(p: Part): string {
     Math.round(p.cutThickness),
     p.grain,
     p.name,
+    JSON.stringify(p.edges),
   ].join("|");
 }
 
@@ -17,8 +19,10 @@ export function buildCutlist(cabinets: Cabinet[]): CutlistRow[] {
     for (const part of cab.parts) {
       const key = partKey(part);
       const existing = groups.get(key);
+      const banded = partBandedMeters(part);
       if (existing) {
         existing.quantity += part.quantity;
+        existing.edgeBandedMeters += banded;
       } else {
         groups.set(key, {
           partName: part.name,
@@ -28,6 +32,7 @@ export function buildCutlist(cabinets: Cabinet[]): CutlistRow[] {
           thickness: part.cutThickness,
           grain: part.grain,
           quantity: part.quantity,
+          edgeBandedMeters: banded,
         });
       }
     }
