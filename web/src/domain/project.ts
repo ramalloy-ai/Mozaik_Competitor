@@ -46,6 +46,8 @@ export function makeDefaultProject(): Project {
         name: "Kitchen",
         widthX: 4000,
         depthZ: 3000,
+        walls: [],
+        wallHeight: 2400,
         cabinets: [cab1, cab2, cab3],
       },
     ],

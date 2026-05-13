@@ -1,6 +1,7 @@
 import type { Cabinet, CabinetSpec, Part } from "../types";
 import { getMaterial } from "../library";
 import { joineryDeltas } from "./joinery";
+import { addFaceFrameParts } from "./faceFrame";
 
 // Wall cabinet: no toe kick, top is a full panel (not stretchers).
 export function buildWall(spec: CabinetSpec): Cabinet {
@@ -115,8 +116,13 @@ export function buildWall(spec: CabinetSpec): Cabinet {
     });
   }
 
-  const doorH = H - 2 * gap;
-  const doorW = W - 2 * gap;
+  const ff = addFaceFrameParts(spec, { yBottom: 0, yTop: H });
+  parts.push(...ff.parts);
+  const doorH = H - 2 * gap - ff.doorInsetY.bot - ff.doorInsetY.top;
+  const doorW = W - 2 * gap - 2 * ff.doorInsetX;
+  const doorBaseX = gap + ff.doorInsetX;
+  const doorCenterY = gap + ff.doorInsetY.bot + doorH / 2;
+  const doorZ = D + ff.doorOffsetZ + td / 2 + 1;
   if (spec.doorStyle === "single") {
     push({
       id: `${spec.id}-door`,
@@ -127,7 +133,7 @@ export function buildWall(spec: CabinetSpec): Cabinet {
       cutThickness: td,
       grain: "length",
       size: [doorW, doorH, td],
-      position: [W / 2, H / 2, D + td / 2 + 1],
+      position: [W / 2, doorCenterY, doorZ],
       quantity: 1,
       edges: { front: edge, back: edge, left: edge, right: edge },
     });
@@ -142,7 +148,7 @@ export function buildWall(spec: CabinetSpec): Cabinet {
       cutThickness: td,
       grain: "length",
       size: [dw, doorH, td],
-      position: [gap + dw / 2, H / 2, D + td / 2 + 1],
+      position: [doorBaseX + dw / 2, doorCenterY, doorZ],
       quantity: 1,
       edges: { front: edge, back: edge, left: edge, right: edge },
     });
@@ -155,7 +161,7 @@ export function buildWall(spec: CabinetSpec): Cabinet {
       cutThickness: td,
       grain: "length",
       size: [dw, doorH, td],
-      position: [W - gap - dw / 2, H / 2, D + td / 2 + 1],
+      position: [W - doorBaseX - dw / 2, doorCenterY, doorZ],
       quantity: 1,
       edges: { front: edge, back: edge, left: edge, right: edge },
     });

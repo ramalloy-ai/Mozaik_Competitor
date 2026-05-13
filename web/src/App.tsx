@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { api, type AuthUser } from "./api";
 import { useProject } from "./store";
 import { DesignView } from "./views/DesignView";
@@ -45,6 +45,28 @@ export function App() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [showAuth, setShowAuth] = useState(false);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      if (e.key.toLowerCase() === "z") {
+        const target = e.target as HTMLElement | null;
+        if (
+          target &&
+          (target.tagName === "INPUT" ||
+            target.tagName === "TEXTAREA" ||
+            target.isContentEditable)
+        ) {
+          return;
+        }
+        e.preventDefault();
+        if (e.shiftKey) store.redo();
+        else store.undo();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [store]);
+
   if (showAuth && !api.isAuthed()) {
     return (
       <Suspense fallback={<Fallback />}>
@@ -74,6 +96,22 @@ export function App() {
           ))}
         </nav>
         <div className="topbar-spacer" />
+        <div className="history-btns">
+          <button
+            onClick={store.undo}
+            disabled={!store.canUndo}
+            title="Undo (Cmd/Ctrl+Z)"
+          >
+            ↶
+          </button>
+          <button
+            onClick={store.redo}
+            disabled={!store.canRedo}
+            title="Redo (Cmd/Ctrl+Shift+Z)"
+          >
+            ↷
+          </button>
+        </div>
         <span className="muted small">{store.project.name}</span>
         {user || api.isAuthed() ? (
           <button

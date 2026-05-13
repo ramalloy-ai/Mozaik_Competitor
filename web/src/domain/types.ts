@@ -28,7 +28,13 @@ export interface Part {
 }
 
 export type DoorStyle = "none" | "single" | "double" | "drawerFront";
-export type CabinetKind = "base" | "wall" | "tall";
+export type CabinetKind =
+  | "base"
+  | "wall"
+  | "tall"
+  | "drawerBase"
+  | "sinkBase"
+  | "cornerBase";
 
 // Joinery between carcass parts. Each value either butts against the
 // receiving panel ("butt") or fits into a dado/rabbet machined into the
@@ -69,6 +75,15 @@ export interface CabinetSpec {
   // 0 disables the split (single full-height pair).
   tallUpperFraction: number;
   tallDoorMidGap: number;
+  // Face frame: stiles (vertical) + rails (horizontal) added to the front.
+  faceFrame: boolean;
+  faceFrameStileWidth: number;
+  faceFrameRailWidth: number;
+  // Drawer base: number of drawer banks stacked vertically.
+  drawerCount: number;
+  // Corner base: length of the blind leg and width of the blind face.
+  cornerDepth: number;
+  blindWidth: number;
   roomX: number;
   roomZ: number;
   roomRotation: number;
@@ -80,11 +95,20 @@ export interface Cabinet {
   parts: Part[];
 }
 
+export interface WallPoint {
+  x: number;
+  z: number;
+}
+
 export interface Room {
   id: string;
   name: string;
   widthX: number;
   depthZ: number;
+  // Optional explicit wall outline. If empty/missing, a rectangle of
+  // (widthX, depthZ) is implied.
+  walls: WallPoint[];
+  wallHeight: number;
   cabinets: CabinetSpec[];
 }
 

@@ -33,7 +33,7 @@ export function Viewer3D({
   useEffect(() => {
     const mount = mountRef.current!;
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0f1115);
+    scene.background = new THREE.Color(0xeef0f4);
 
     const camera = new THREE.PerspectiveCamera(
       45,
@@ -49,33 +49,51 @@ export function Viewer3D({
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     mount.appendChild(renderer.domElement);
 
-    const hemi = new THREE.HemisphereLight(0xffffff, 0x202028, 0.55);
+    const hemi = new THREE.HemisphereLight(0xffffff, 0xe0e3e8, 0.7);
     scene.add(hemi);
-    const dir = new THREE.DirectionalLight(0xffffff, 0.9);
+    const dir = new THREE.DirectionalLight(0xffffff, 0.85);
     dir.position.set(2500, 3000, 2000);
     scene.add(dir);
 
-    const grid = new THREE.GridHelper(8000, 80, 0x444444, 0x2a2d33);
+    // Floor plane.
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(20000, 20000),
+      new THREE.MeshStandardMaterial({ color: 0xf0f2f6, roughness: 0.95 }),
+    );
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.set(0, 0, 0);
+    scene.add(floor);
+
+    const grid = new THREE.GridHelper(8000, 80, 0xcdd3dc, 0xe3e6eb);
     scene.add(grid);
 
-    // Room walls (back + left).
+    const wallH = room.wallHeight || 2400;
     const wallMat = new THREE.MeshStandardMaterial({
-      color: 0x232629,
+      color: 0xf6f7fa,
       side: THREE.DoubleSide,
+      roughness: 0.9,
     });
-    const backWall = new THREE.Mesh(
-      new THREE.PlaneGeometry(room.widthX, 2400),
-      wallMat,
-    );
-    backWall.position.set(room.widthX / 2, 1200, 0);
-    scene.add(backWall);
-    const leftWall = new THREE.Mesh(
-      new THREE.PlaneGeometry(room.depthZ, 2400),
-      wallMat,
-    );
-    leftWall.rotation.y = Math.PI / 2;
-    leftWall.position.set(0, 1200, room.depthZ / 2);
-    scene.add(leftWall);
+    const walls = room.walls.length >= 2
+      ? room.walls
+      : [
+          { x: 0, z: 0 },
+          { x: room.widthX, z: 0 },
+          { x: room.widthX, z: room.depthZ },
+          { x: 0, z: room.depthZ },
+          { x: 0, z: 0 },
+        ];
+    for (let i = 0; i + 1 < walls.length; i++) {
+      const a = walls[i];
+      const b = walls[i + 1];
+      const dx = b.x - a.x;
+      const dz = b.z - a.z;
+      const len = Math.sqrt(dx * dx + dz * dz);
+      if (len < 1) continue;
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(len, wallH), wallMat);
+      mesh.position.set((a.x + b.x) / 2, wallH / 2, (a.z + b.z) / 2);
+      mesh.rotation.y = -Math.atan2(dz, dx);
+      scene.add(mesh);
+    }
 
     const group = new THREE.Group();
     scene.add(group);
@@ -204,8 +222,8 @@ export function Viewer3D({
           color: part.material.color,
           roughness: 0.75,
           metalness: 0.02,
-          emissive: isSelected ? 0x7dd3fc : 0x000000,
-          emissiveIntensity: isSelected ? 0.12 : 0,
+          emissive: isSelected ? 0x0ea5e9 : 0x000000,
+          emissiveIntensity: isSelected ? 0.15 : 0,
         });
         const mesh = new THREE.Mesh(geo, mat);
         mesh.position.set(...part.position);
@@ -215,9 +233,9 @@ export function Viewer3D({
         const edges = new THREE.LineSegments(
           new THREE.EdgesGeometry(geo),
           new THREE.LineBasicMaterial({
-            color: isSelected ? 0x7dd3fc : 0x1a1c20,
+            color: isSelected ? 0x0ea5e9 : 0x3b3f47,
             transparent: true,
-            opacity: isSelected ? 0.9 : 0.45,
+            opacity: isSelected ? 0.9 : 0.35,
           }),
         );
         edges.position.copy(mesh.position);

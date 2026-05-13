@@ -1,6 +1,7 @@
 import type { Cabinet, CabinetSpec, Part } from "../types";
 import { getMaterial } from "../library";
 import { joineryDeltas } from "./joinery";
+import { addFaceFrameParts } from "./faceFrame";
 
 // Coordinate system inside a cabinet (millimeters):
 //   +X right, +Y up, +Z forward (toward viewer).
@@ -150,8 +151,14 @@ export function buildBase(spec: CabinetSpec): Cabinet {
     });
   }
 
-  const doorH = above - 2 * gap;
-  const doorW = W - 2 * gap;
+  const ff = addFaceFrameParts(spec, { yBottom: tk, yTop: H });
+  parts.push(...ff.parts);
+  const doorH = above - 2 * gap - ff.doorInsetY.bot - ff.doorInsetY.top;
+  const doorW = W - 2 * gap - 2 * ff.doorInsetX;
+  const doorBaseX = gap + ff.doorInsetX;
+  const doorBaseY = tk + gap + ff.doorInsetY.bot;
+  const doorZ = D + ff.doorOffsetZ + td / 2 + 1;
+  const doorCenterY = doorBaseY + doorH / 2;
   if (spec.doorStyle === "single") {
     push({
       id: `${spec.id}-door`,
@@ -162,7 +169,7 @@ export function buildBase(spec: CabinetSpec): Cabinet {
       cutThickness: td,
       grain: "length",
       size: [doorW, doorH, td],
-      position: [W / 2, tk + above / 2, D + td / 2 + 1],
+      position: [W / 2, doorCenterY, doorZ],
       quantity: 1,
       edges: { front: edge, back: edge, left: edge, right: edge },
     });
@@ -177,7 +184,7 @@ export function buildBase(spec: CabinetSpec): Cabinet {
       cutThickness: td,
       grain: "length",
       size: [dw, doorH, td],
-      position: [gap + dw / 2, tk + above / 2, D + td / 2 + 1],
+      position: [doorBaseX + dw / 2, doorCenterY, doorZ],
       quantity: 1,
       edges: { front: edge, back: edge, left: edge, right: edge },
     });
@@ -190,7 +197,7 @@ export function buildBase(spec: CabinetSpec): Cabinet {
       cutThickness: td,
       grain: "length",
       size: [dw, doorH, td],
-      position: [W - gap - dw / 2, tk + above / 2, D + td / 2 + 1],
+      position: [W - doorBaseX - dw / 2, doorCenterY, doorZ],
       quantity: 1,
       edges: { front: edge, back: edge, left: edge, right: edge },
     });
@@ -204,7 +211,7 @@ export function buildBase(spec: CabinetSpec): Cabinet {
       cutThickness: td,
       grain: "length",
       size: [doorW, doorH, td],
-      position: [W / 2, tk + above / 2, D + td / 2 + 1],
+      position: [W / 2, doorCenterY, doorZ],
       quantity: 1,
       edges: { front: edge, back: edge, left: edge, right: edge },
     });

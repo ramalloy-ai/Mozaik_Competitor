@@ -1,6 +1,7 @@
 import type { Cabinet, CabinetSpec, Part } from "../types";
 import { getMaterial } from "../library";
 import { joineryDeltas } from "./joinery";
+import { addFaceFrameParts } from "./faceFrame";
 
 // Tall cabinet: toe kick + full sides + full top + back + shelves + tall doors.
 // `tallUpperFraction > 0` splits doors into upper/lower pairs.
@@ -132,8 +133,13 @@ export function buildTall(spec: CabinetSpec): Cabinet {
     });
   }
 
-  const doorAreaH = above - 2 * gap;
-  const doorAreaW = W - 2 * gap;
+  const ff = addFaceFrameParts(spec, { yBottom: tk, yTop: H });
+  parts.push(...ff.parts);
+  const doorAreaH = above - 2 * gap - ff.doorInsetY.bot - ff.doorInsetY.top;
+  const doorAreaW = W - 2 * gap - 2 * ff.doorInsetX;
+  const doorBaseX = gap + ff.doorInsetX;
+  const doorBaseY = tk + gap + ff.doorInsetY.bot;
+  const doorZ = D + ff.doorOffsetZ + td / 2 + 1;
   const split = spec.tallUpperFraction > 0 && spec.tallUpperFraction < 1;
   const midGap = spec.tallDoorMidGap;
   const upperH = split
@@ -143,8 +149,8 @@ export function buildTall(spec: CabinetSpec): Cabinet {
     ? doorAreaH * (1 - spec.tallUpperFraction) - midGap / 2
     : 0;
   const upperCenterY =
-    tk + gap + lowerH + (split ? midGap : 0) + upperH / 2;
-  const lowerCenterY = tk + gap + lowerH / 2;
+    doorBaseY + lowerH + (split ? midGap : 0) + upperH / 2;
+  const lowerCenterY = doorBaseY + lowerH / 2;
 
   const placeDoorPair = (
     suffix: string,
@@ -163,7 +169,7 @@ export function buildTall(spec: CabinetSpec): Cabinet {
         cutThickness: td,
         grain: "length",
         size: [dw, h, td],
-        position: [gap + dw / 2, centerY, D + td / 2 + 1],
+        position: [doorBaseX + dw / 2, centerY, doorZ],
         quantity: 1,
         edges: { front: edge, back: edge, left: edge, right: edge },
       });
@@ -176,7 +182,7 @@ export function buildTall(spec: CabinetSpec): Cabinet {
         cutThickness: td,
         grain: "length",
         size: [dw, h, td],
-        position: [W - gap - dw / 2, centerY, D + td / 2 + 1],
+        position: [W - doorBaseX - dw / 2, centerY, doorZ],
         quantity: 1,
         edges: { front: edge, back: edge, left: edge, right: edge },
       });
@@ -190,7 +196,7 @@ export function buildTall(spec: CabinetSpec): Cabinet {
         cutThickness: td,
         grain: "length",
         size: [doorAreaW, h, td],
-        position: [W / 2, centerY, D + td / 2 + 1],
+        position: [W / 2, centerY, doorZ],
         quantity: 1,
         edges: { front: edge, back: edge, left: edge, right: edge },
       });
@@ -201,7 +207,7 @@ export function buildTall(spec: CabinetSpec): Cabinet {
     placeDoorPair("lo", "Lower", lowerCenterY, lowerH);
     placeDoorPair("hi", "Upper", upperCenterY, upperH);
   } else {
-    placeDoorPair("full", "Full", tk + above / 2, doorAreaH);
+    placeDoorPair("full", "Full", doorBaseY + doorAreaH / 2, doorAreaH);
   }
 
   return { spec, parts };
