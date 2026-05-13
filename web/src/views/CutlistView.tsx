@@ -2,8 +2,15 @@ import { useMemo } from "react";
 import type { ProjectStore } from "../store";
 import { buildCutlist, totalBoardArea } from "../domain/cutlist";
 import { summarizeEdgeBanding } from "../domain/edgeBanding";
-import { downloadBlob } from "../domain/pdf";
-import { generateLabelsPdf } from "../domain/pdf";
+
+async function downloadLabels(
+  cabinets: Parameters<typeof import("../domain/pdf").generateLabelsPdf>[0],
+  rows: Parameters<typeof import("../domain/pdf").generateLabelsPdf>[1],
+  filename: string,
+) {
+  const pdf = await import("../domain/pdf");
+  pdf.downloadBlob(filename, pdf.generateLabelsPdf(cabinets, rows));
+}
 
 export function CutlistView({ store }: { store: ProjectStore }) {
   const rows = useMemo(() => buildCutlist(store.cabinets), [store.cabinets]);
@@ -21,9 +28,10 @@ export function CutlistView({ store }: { store: ProjectStore }) {
         <div>
           <button
             onClick={() =>
-              downloadBlob(
+              downloadLabels(
+                store.cabinets,
+                rows,
                 `${store.project.name}-labels.pdf`,
-                generateLabelsPdf(store.cabinets, rows),
               )
             }
           >

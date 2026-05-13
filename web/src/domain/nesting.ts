@@ -63,9 +63,19 @@ export function nest(cabinets: Cabinet[], kerf = 3): Sheet[] {
 
     let remaining = items.slice();
     while (remaining.length) {
+      const before = remaining.length;
       const sheet = makeSheet(mat);
       remaining = packIntoSheet(sheet, remaining, mat, kerf);
       sheets.push(sheet);
+      if (remaining.length === before) {
+        // Nothing fit on a fresh sheet — the leftover items are larger than
+        // the stock sheet. Drop them rather than loop forever.
+        // eslint-disable-next-line no-console
+        console.warn(
+          `nesting: ${remaining.length} part(s) of "${mat.name}" exceed sheet size; dropped`,
+        );
+        break;
+      }
     }
   }
   return sheets;

@@ -1,7 +1,9 @@
 import type { Cabinet, CabinetSpec, Part } from "../types";
 import { getMaterial } from "../library";
+import { joineryDeltas } from "./joinery";
 
 // Tall cabinet: toe kick + full sides + full top + back + shelves + tall doors.
+// `tallUpperFraction > 0` splits doors into upper/lower pairs.
 export function buildTall(spec: CabinetSpec): Cabinet {
   const panel = getMaterial(spec.panelMaterialId);
   const back = getMaterial(spec.backMaterialId);
@@ -20,6 +22,7 @@ export function buildTall(spec: CabinetSpec): Cabinet {
   const inset = spec.backInset;
   const innerW = W - 2 * t;
   const above = H - tk;
+  const dj = joineryDeltas(spec);
 
   const parts: Part[] = [];
   const push = (p: Omit<Part, "cabinetId" | "cabinetName">) =>
@@ -55,7 +58,7 @@ export function buildTall(spec: CabinetSpec): Cabinet {
     id: `${spec.id}-bottom`,
     name: "Bottom",
     material: panel,
-    cutLength: innerW,
+    cutLength: innerW + dj.topBottomLengthBoost,
     cutWidth: D,
     cutThickness: t,
     grain: "length",
@@ -68,7 +71,7 @@ export function buildTall(spec: CabinetSpec): Cabinet {
     id: `${spec.id}-top`,
     name: "Top",
     material: panel,
-    cutLength: innerW,
+    cutLength: innerW + dj.topBottomLengthBoost,
     cutWidth: D,
     cutThickness: t,
     grain: "length",
@@ -91,15 +94,18 @@ export function buildTall(spec: CabinetSpec): Cabinet {
     edges: { front: edge },
   });
 
+  const tallBackH = above - 2 * t;
+  const tallBackLong = Math.max(innerW, tallBackH) + dj.backLengthBoost;
+  const tallBackShort = Math.min(innerW, tallBackH) + dj.backHeightBoost;
   push({
     id: `${spec.id}-back`,
     name: "Back Panel",
     material: back,
-    cutLength: innerW,
-    cutWidth: above - 2 * t,
+    cutLength: tallBackLong,
+    cutWidth: tallBackShort,
     cutThickness: tb,
     grain: "length",
-    size: [innerW, above - 2 * t, tb],
+    size: [innerW, tallBackH, tb],
     position: [W / 2, tk + above / 2, inset + tb / 2],
     quantity: 1,
     edges: {},
@@ -115,7 +121,7 @@ export function buildTall(spec: CabinetSpec): Cabinet {
       id: `${spec.id}-shelf-${i + 1}`,
       name: `Shelf ${i + 1}`,
       material: panel,
-      cutLength: innerW - 3,
+      cutLength: innerW - 3 + dj.topBottomLengthBoost,
       cutWidth: shelfDepth,
       cutThickness: t,
       grain: "length",
@@ -126,52 +132,76 @@ export function buildTall(spec: CabinetSpec): Cabinet {
     });
   }
 
-  const doorH = above - 2 * gap;
-  const doorW = W - 2 * gap;
-  if (spec.doorStyle === "double") {
-    const dw = (doorW - gap) / 2;
-    // Tall cabinets typically get split doors (upper + lower) but for v1
-    // we ship a single pair of full-height doors.
-    push({
-      id: `${spec.id}-door-l`,
-      name: "Door (Left)",
-      material: door,
-      cutLength: doorH,
-      cutWidth: dw,
-      cutThickness: td,
-      grain: "length",
-      size: [dw, doorH, td],
-      position: [gap + dw / 2, tk + above / 2, D + td / 2 + 1],
-      quantity: 1,
-      edges: { front: edge, back: edge, left: edge, right: edge },
-    });
-    push({
-      id: `${spec.id}-door-r`,
-      name: "Door (Right)",
-      material: door,
-      cutLength: doorH,
-      cutWidth: dw,
-      cutThickness: td,
-      grain: "length",
-      size: [dw, doorH, td],
-      position: [W - gap - dw / 2, tk + above / 2, D + td / 2 + 1],
-      quantity: 1,
-      edges: { front: edge, back: edge, left: edge, right: edge },
-    });
-  } else if (spec.doorStyle === "single") {
-    push({
-      id: `${spec.id}-door`,
-      name: "Door",
-      material: door,
-      cutLength: doorH,
-      cutWidth: doorW,
-      cutThickness: td,
-      grain: "length",
-      size: [doorW, doorH, td],
-      position: [W / 2, tk + above / 2, D + td / 2 + 1],
-      quantity: 1,
-      edges: { front: edge, back: edge, left: edge, right: edge },
-    });
+  const doorAreaH = above - 2 * gap;
+  const doorAreaW = W - 2 * gap;
+  const split = spec.tallUpperFraction > 0 && spec.tallUpperFraction < 1;
+  const midGap = spec.tallDoorMidGap;
+  const upperH = split
+    ? doorAreaH * spec.tallUpperFraction - midGap / 2
+    : doorAreaH;
+  const lowerH = split
+    ? doorAreaH * (1 - spec.tallUpperFraction) - midGap / 2
+    : 0;
+  const upperCenterY =
+    tk + gap + lowerH + (split ? midGap : 0) + upperH / 2;
+  const lowerCenterY = tk + gap + lowerH / 2;
+
+  const placeDoorPair = (
+    suffix: string,
+    name: string,
+    centerY: number,
+    h: number,
+  ) => {
+    if (spec.doorStyle === "double") {
+      const dw = (doorAreaW - gap) / 2;
+      push({
+        id: `${spec.id}-door-l-${suffix}`,
+        name: `Door (Left ${name})`,
+        material: door,
+        cutLength: h,
+        cutWidth: dw,
+        cutThickness: td,
+        grain: "length",
+        size: [dw, h, td],
+        position: [gap + dw / 2, centerY, D + td / 2 + 1],
+        quantity: 1,
+        edges: { front: edge, back: edge, left: edge, right: edge },
+      });
+      push({
+        id: `${spec.id}-door-r-${suffix}`,
+        name: `Door (Right ${name})`,
+        material: door,
+        cutLength: h,
+        cutWidth: dw,
+        cutThickness: td,
+        grain: "length",
+        size: [dw, h, td],
+        position: [W - gap - dw / 2, centerY, D + td / 2 + 1],
+        quantity: 1,
+        edges: { front: edge, back: edge, left: edge, right: edge },
+      });
+    } else if (spec.doorStyle === "single") {
+      push({
+        id: `${spec.id}-door-${suffix}`,
+        name: `Door (${name})`,
+        material: door,
+        cutLength: h,
+        cutWidth: doorAreaW,
+        cutThickness: td,
+        grain: "length",
+        size: [doorAreaW, h, td],
+        position: [W / 2, centerY, D + td / 2 + 1],
+        quantity: 1,
+        edges: { front: edge, back: edge, left: edge, right: edge },
+      });
+    }
+  };
+
+  if (split) {
+    placeDoorPair("lo", "Lower", lowerCenterY, lowerH);
+    placeDoorPair("hi", "Upper", upperCenterY, upperH);
+  } else {
+    placeDoorPair("full", "Full", tk + above / 2, doorAreaH);
   }
 
   return { spec, parts };

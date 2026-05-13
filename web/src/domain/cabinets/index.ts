@@ -31,6 +31,13 @@ export function makeDefaultCabinet(
     doorStyle: "double" as const,
     doorGap: 3,
     backInset: 12,
+    joinery: {
+      topBottomToSides: "butt" as const,
+      backToCarcass: "rabbet" as const,
+      grooveDepth: 8,
+    },
+    tallUpperFraction: 0,
+    tallDoorMidGap: 3,
     roomX: 0,
     roomZ: 0,
     roomRotation: 0,
@@ -75,6 +82,7 @@ export function makeDefaultCabinet(
         toeKickSetback: 60,
         drawerSlideId: null,
         shelfCount: 4,
+        tallUpperFraction: 0.7,
         roomY: 0,
       };
   }

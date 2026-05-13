@@ -1,5 +1,6 @@
 import type { Cabinet, CabinetSpec, Part } from "../types";
 import { getMaterial } from "../library";
+import { joineryDeltas } from "./joinery";
 
 // Coordinate system inside a cabinet (millimeters):
 //   +X right, +Y up, +Z forward (toward viewer).
@@ -25,6 +26,7 @@ export function buildBase(spec: CabinetSpec): Cabinet {
   const inset = spec.backInset;
   const innerW = W - 2 * t;
   const above = H - tk;
+  const dj = joineryDeltas(spec);
 
   const parts: Part[] = [];
   const push = (p: Omit<Part, "cabinetId" | "cabinetName">) =>
@@ -60,7 +62,7 @@ export function buildBase(spec: CabinetSpec): Cabinet {
     id: `${spec.id}-bottom`,
     name: "Bottom",
     material: panel,
-    cutLength: innerW,
+    cutLength: innerW + dj.topBottomLengthBoost,
     cutWidth: D,
     cutThickness: t,
     grain: "length",
@@ -73,7 +75,7 @@ export function buildBase(spec: CabinetSpec): Cabinet {
     id: `${spec.id}-strF`,
     name: "Top Stretcher (Front)",
     material: panel,
-    cutLength: innerW,
+    cutLength: innerW + dj.topBottomLengthBoost,
     cutWidth: STRETCHER_DEPTH,
     cutThickness: t,
     grain: "length",
@@ -86,7 +88,7 @@ export function buildBase(spec: CabinetSpec): Cabinet {
     id: `${spec.id}-strB`,
     name: "Top Stretcher (Back)",
     material: panel,
-    cutLength: innerW,
+    cutLength: innerW + dj.topBottomLengthBoost,
     cutWidth: STRETCHER_DEPTH,
     cutThickness: t,
     grain: "length",
@@ -110,12 +112,15 @@ export function buildBase(spec: CabinetSpec): Cabinet {
   });
 
   const backH = H - tk;
+  // Cut list convention: cutLength = longer side (grain axis).
+  const backLong = Math.max(innerW, backH) + dj.backLengthBoost;
+  const backShort = Math.min(innerW, backH) + dj.backHeightBoost;
   push({
     id: `${spec.id}-back`,
     name: "Back Panel",
     material: back,
-    cutLength: innerW,
-    cutWidth: backH,
+    cutLength: backLong,
+    cutWidth: backShort,
     cutThickness: tb,
     grain: "length",
     size: [innerW, backH, tb],
@@ -134,7 +139,7 @@ export function buildBase(spec: CabinetSpec): Cabinet {
       id: `${spec.id}-shelf-${i + 1}`,
       name: `Shelf ${i + 1}`,
       material: panel,
-      cutLength: innerW - 3,
+      cutLength: innerW - 3 + dj.topBottomLengthBoost,
       cutWidth: shelfDepth,
       cutThickness: t,
       grain: "length",

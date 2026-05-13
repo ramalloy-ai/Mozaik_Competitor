@@ -1,5 +1,6 @@
 import type { Cabinet, CabinetSpec, Part } from "../types";
 import { getMaterial } from "../library";
+import { joineryDeltas } from "./joinery";
 
 // Wall cabinet: no toe kick, top is a full panel (not stretchers).
 export function buildWall(spec: CabinetSpec): Cabinet {
@@ -17,6 +18,7 @@ export function buildWall(spec: CabinetSpec): Cabinet {
   const gap = spec.doorGap;
   const inset = spec.backInset;
   const innerW = W - 2 * t;
+  const dj = joineryDeltas(spec);
 
   const parts: Part[] = [];
   const push = (p: Omit<Part, "cabinetId" | "cabinetName">) =>
@@ -52,7 +54,7 @@ export function buildWall(spec: CabinetSpec): Cabinet {
     id: `${spec.id}-bottom`,
     name: "Bottom",
     material: panel,
-    cutLength: innerW,
+    cutLength: innerW + dj.topBottomLengthBoost,
     cutWidth: D,
     cutThickness: t,
     grain: "length",
@@ -65,7 +67,7 @@ export function buildWall(spec: CabinetSpec): Cabinet {
     id: `${spec.id}-top`,
     name: "Top",
     material: panel,
-    cutLength: innerW,
+    cutLength: innerW + dj.topBottomLengthBoost,
     cutWidth: D,
     cutThickness: t,
     grain: "length",
@@ -75,15 +77,18 @@ export function buildWall(spec: CabinetSpec): Cabinet {
     edges: { front: edge },
   });
 
+  const wallBackH = H - 2 * t;
+  const wallBackLong = Math.max(innerW, wallBackH) + dj.backLengthBoost;
+  const wallBackShort = Math.min(innerW, wallBackH) + dj.backHeightBoost;
   push({
     id: `${spec.id}-back`,
     name: "Back Panel",
     material: back,
-    cutLength: innerW,
-    cutWidth: H - 2 * t,
+    cutLength: wallBackLong,
+    cutWidth: wallBackShort,
     cutThickness: tb,
     grain: "length",
-    size: [innerW, H - 2 * t, tb],
+    size: [innerW, wallBackH, tb],
     position: [W / 2, H / 2, inset + tb / 2],
     quantity: 1,
     edges: {},
@@ -99,7 +104,7 @@ export function buildWall(spec: CabinetSpec): Cabinet {
       id: `${spec.id}-shelf-${i + 1}`,
       name: `Shelf ${i + 1}`,
       material: panel,
-      cutLength: innerW - 3,
+      cutLength: innerW - 3 + dj.topBottomLengthBoost,
       cutWidth: shelfDepth,
       cutThickness: t,
       grain: "length",

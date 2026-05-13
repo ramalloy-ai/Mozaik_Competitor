@@ -23,8 +23,10 @@ export function RoomLayout2D({
   const [size, setSize] = useState({ w: 800, h: 600 });
   const dragRef = useRef<{
     id: string;
-    offsetX: number;
-    offsetZ: number;
+    // Local-frame offset from cabinet origin to the clicked point.
+    localX: number;
+    localZ: number;
+    rotation: number;
   } | null>(null);
 
   useEffect(() => {
@@ -125,15 +127,15 @@ export function RoomLayout2D({
   const hitTest = (rx: number, rz: number): CabinetSpec | null => {
     for (let i = room.cabinets.length - 1; i >= 0; i--) {
       const c = room.cabinets[i];
-      // Ignore rotation in hit test for simplicity (axis-aligned bbox).
-      if (
-        rx >= c.roomX &&
-        rx <= c.roomX + c.width &&
-        rz >= c.roomZ &&
-        rz <= c.roomZ + c.depth
-      ) {
-        return c;
-      }
+      // Transform the click point into the cabinet's local frame: undo the
+      // translation, then rotate by -roomRotation.
+      const dx = rx - c.roomX;
+      const dz = rz - c.roomZ;
+      const cos = Math.cos(-c.roomRotation);
+      const sin = Math.sin(-c.roomRotation);
+      const lx = dx * cos - dz * sin;
+      const lz = dx * sin + dz * cos;
+      if (lx >= 0 && lx <= c.width && lz >= 0 && lz <= c.depth) return c;
     }
     return null;
   };
@@ -173,10 +175,15 @@ export function RoomLayout2D({
           const cab = hitTest(x, z);
           if (cab) {
             onSelectCabinet(cab.id);
+            const dxw = x - cab.roomX;
+            const dzw = z - cab.roomZ;
+            const cos = Math.cos(-cab.roomRotation);
+            const sin = Math.sin(-cab.roomRotation);
             dragRef.current = {
               id: cab.id,
-              offsetX: x - cab.roomX,
-              offsetZ: z - cab.roomZ,
+              localX: dxw * cos - dzw * sin,
+              localZ: dxw * sin + dzw * cos,
+              rotation: cab.roomRotation,
             };
           } else {
             onSelectCabinet(null);
@@ -185,8 +192,13 @@ export function RoomLayout2D({
         onMouseMove={(e) => {
           if (!dragRef.current) return;
           const { x, z } = canvasToRoom(e.clientX, e.clientY);
-          const newX = Math.max(0, Math.round((x - dragRef.current.offsetX) / 10) * 10);
-          const newZ = Math.max(0, Math.round((z - dragRef.current.offsetZ) / 10) * 10);
+          const { localX, localZ, rotation } = dragRef.current;
+          const cos = Math.cos(rotation);
+          const sin = Math.sin(rotation);
+          const worldOffsetX = localX * cos - localZ * sin;
+          const worldOffsetZ = localX * sin + localZ * cos;
+          const newX = Math.max(0, Math.round((x - worldOffsetX) / 10) * 10);
+          const newZ = Math.max(0, Math.round((z - worldOffsetZ) / 10) * 10);
           onMoveCabinet(dragRef.current.id, newX, newZ);
         }}
         onMouseUp={() => {

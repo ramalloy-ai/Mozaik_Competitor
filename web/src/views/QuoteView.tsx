@@ -1,8 +1,20 @@
 import { useMemo } from "react";
 import type { ProjectStore } from "../store";
 import { nest } from "../domain/nesting";
-import { buildPriceQuote } from "../domain/pricing";
-import { generateQuotePdf, downloadBlob } from "../domain/pdf";
+import {
+  buildPriceQuote,
+  type PriceTotal,
+} from "../domain/pricing";
+
+async function downloadQuotePdf(opts: {
+  projectName: string;
+  customer: string;
+  quote: PriceTotal;
+  filename: string;
+}) {
+  const pdf = await import("../domain/pdf");
+  pdf.downloadBlob(opts.filename, pdf.generateQuotePdf(opts));
+}
 
 export function QuoteView({ store }: { store: ProjectStore }) {
   const sheets = useMemo(() => nest(store.cabinets), [store.cabinets]);
@@ -19,14 +31,12 @@ export function QuoteView({ store }: { store: ProjectStore }) {
         <div>
           <button
             onClick={() =>
-              downloadBlob(
-                `${store.project.name}-quote.pdf`,
-                generateQuotePdf({
-                  projectName: store.project.name,
-                  customer: store.project.customer,
-                  quote,
-                }),
-              )
+              downloadQuotePdf({
+                projectName: store.project.name,
+                customer: store.project.customer,
+                quote,
+                filename: `${store.project.name}-quote.pdf`,
+              })
             }
           >
             Download quote (PDF)

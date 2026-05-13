@@ -1,14 +1,28 @@
 import { useMemo, useState } from "react";
 import type { ProjectStore } from "../store";
 import { nest, type Sheet } from "../domain/nesting";
-import { sheetToDxf, downloadText } from "../domain/dxf";
+import { downloadText } from "../domain/dxf";
+import {
+  POSTPROCESSORS,
+  getPostprocessor,
+  type PostprocessorId,
+} from "../domain/postprocess";
 
 export function NestingView({ store }: { store: ProjectStore }) {
   const [kerf, setKerf] = useState(3);
+  const [postId, setPostId] = useState<PostprocessorId>("dxf");
+  const post = getPostprocessor(postId);
   const sheets = useMemo(
     () => nest(store.cabinets, kerf),
     [store.cabinets, kerf],
   );
+
+  const downloadSheet = (sheet: Sheet, index: number) => {
+    downloadText(
+      `sheet-${index}-${sheet.materialId}.${post.extension}`,
+      post.emit(sheet),
+    );
+  };
 
   return (
     <div className="screen">
@@ -16,7 +30,7 @@ export function NestingView({ store }: { store: ProjectStore }) {
         <h1>Sheet nesting</h1>
         <div className="screen-controls">
           <label>
-            Kerf (mm):
+            Kerf:
             <input
               type="number"
               value={kerf}
@@ -26,20 +40,53 @@ export function NestingView({ store }: { store: ProjectStore }) {
               onChange={(e) => setKerf(Number(e.target.value))}
             />
           </label>
+          <label>
+            Output:
+            <select
+              value={postId}
+              onChange={(e) => setPostId(e.target.value as PostprocessorId)}
+            >
+              {POSTPROCESSORS.map((p) => (
+                <option key={p.id} value={p.id}>{p.label}</option>
+              ))}
+            </select>
+          </label>
           <span className="hint">{sheets.length} sheets</span>
         </div>
       </div>
       <div className="screen-body">
+        {post.isToolpath && (
+          <div className="warning-banner">
+            G-code output is a generic ISO baseline (single-pass perimeter,
+            kerf-offset outward). Validate against your machine before cutting:
+            no tabs, no lead-ins, no climb-vs-conventional logic.
+          </div>
+        )}
         {sheets.map((sheet, i) => (
-          <SheetView key={i} index={i + 1} sheet={sheet} />
+          <SheetView
+            key={i}
+            index={i + 1}
+            sheet={sheet}
+            onDownload={() => downloadSheet(sheet, i + 1)}
+            downloadLabel={`Download ${post.extension.toUpperCase()}`}
+          />
         ))}
       </div>
     </div>
   );
 }
 
-function SheetView({ index, sheet }: { index: number; sheet: Sheet }) {
-  // Render at 1mm = 0.4px
+function SheetView({
+  index,
+  sheet,
+  onDownload,
+  downloadLabel,
+}: {
+  index: number;
+  sheet: Sheet;
+  onDownload: () => void;
+  downloadLabel: string;
+}) {
   const px = 0.4;
   return (
     <div className="sheet-card">
@@ -51,16 +98,7 @@ function SheetView({ index, sheet }: { index: number; sheet: Sheet }) {
           {sheet.sheetLength}×{sheet.sheetWidth}mm · util{" "}
           {(sheet.utilization * 100).toFixed(1)}%
         </span>
-        <button
-          onClick={() =>
-            downloadText(
-              `sheet-${index}-${sheet.materialId}.dxf`,
-              sheetToDxf(sheet),
-            )
-          }
-        >
-          Download DXF
-        </button>
+        <button onClick={onDownload}>{downloadLabel}</button>
       </div>
       <svg
         className="sheet-svg"

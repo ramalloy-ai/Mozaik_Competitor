@@ -5,10 +5,35 @@ import { buildCabinet } from "./domain/cabinets";
 
 const STORAGE_KEY = "cs-project";
 
+function migrateCabinet(c: CabinetSpec): CabinetSpec {
+  return {
+    ...c,
+    joinery:
+      c.joinery ?? {
+        topBottomToSides: "butt",
+        backToCarcass: "rabbet",
+        grooveDepth: 8,
+      },
+    tallUpperFraction:
+      c.tallUpperFraction ?? (c.kind === "tall" ? 0.7 : 0),
+    tallDoorMidGap: c.tallDoorMidGap ?? 3,
+  };
+}
+
+function migrateProject(p: Project): Project {
+  return {
+    ...p,
+    rooms: p.rooms.map((r) => ({
+      ...r,
+      cabinets: r.cabinets.map(migrateCabinet),
+    })),
+  };
+}
+
 function loadProject(): Project {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as Project;
+    if (raw) return migrateProject(JSON.parse(raw) as Project);
   } catch {
     // ignore
   }
@@ -83,9 +108,10 @@ export function useProject() {
   };
 
   const replace = (next: Project, serverId: string | null) => {
-    setProject(next);
+    const migrated = migrateProject(next);
+    setProject(migrated);
     setServerProjectId(serverId);
-    setSelectedCabinetId(next.rooms[0]?.cabinets[0]?.id ?? null);
+    setSelectedCabinetId(migrated.rooms[0]?.cabinets[0]?.id ?? null);
   };
 
   return {

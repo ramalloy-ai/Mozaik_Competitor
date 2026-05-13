@@ -192,6 +192,76 @@ export function CabinetInspector({ spec, onChange, onDelete }: Props) {
         </div>
       )}
 
+      <h3>Joinery</h3>
+      <div className="field">
+        <label>Bottom/top to sides</label>
+        <select
+          value={spec.joinery.topBottomToSides}
+          onChange={(e) =>
+            onChange({
+              joinery: {
+                ...spec.joinery,
+                topBottomToSides: e.target.value as "butt" | "dado",
+              },
+            })
+          }
+        >
+          <option value="butt">Butt</option>
+          <option value="dado">Dado</option>
+        </select>
+      </div>
+      <div className="field">
+        <label>Back attachment</label>
+        <select
+          value={spec.joinery.backToCarcass}
+          onChange={(e) =>
+            onChange({
+              joinery: {
+                ...spec.joinery,
+                backToCarcass: e.target.value as
+                  | "surface"
+                  | "rabbet"
+                  | "dado",
+              },
+            })
+          }
+        >
+          <option value="surface">Surface (recessed)</option>
+          <option value="rabbet">Rabbet</option>
+          <option value="dado">Dado</option>
+        </select>
+      </div>
+      <NumField
+        label="Groove depth"
+        value={spec.joinery.grooveDepth}
+        min={0}
+        max={15}
+        onChange={(v) =>
+          onChange({ joinery: { ...spec.joinery, grooveDepth: v } })
+        }
+      />
+
+      {spec.kind === "tall" && (
+        <>
+          <h3>Tall doors</h3>
+          <NumField
+            label="Upper portion (0–1, 0 = single)"
+            value={spec.tallUpperFraction}
+            min={0}
+            max={0.95}
+            step={0.05}
+            onChange={(v) => onChange({ tallUpperFraction: v })}
+          />
+          <NumField
+            label="Mid gap"
+            value={spec.tallDoorMidGap}
+            min={0}
+            max={20}
+            onChange={(v) => onChange({ tallDoorMidGap: v })}
+          />
+        </>
+      )}
+
       <h3>Placement</h3>
       <NumField label="X" value={spec.roomX} min={0} max={20000} step={10} onChange={(v) => onChange({ roomX: v })} />
       <NumField label="Z" value={spec.roomZ} min={0} max={20000} step={10} onChange={(v) => onChange({ roomZ: v })} />

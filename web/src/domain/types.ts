@@ -30,6 +30,19 @@ export interface Part {
 export type DoorStyle = "none" | "single" | "double" | "drawerFront";
 export type CabinetKind = "base" | "wall" | "tall";
 
+// Joinery between carcass parts. Each value either butts against the
+// receiving panel ("butt") or fits into a dado/rabbet machined into the
+// receiving panel; the inset piece gains 2 * grooveDepth on the impacted
+// axis so the panel's shoulders meet the outer faces of the carcass.
+export type CarcassJoint = "butt" | "dado";
+export type BackJoint = "surface" | "rabbet" | "dado";
+
+export interface JoineryConfig {
+  topBottomToSides: CarcassJoint;
+  backToCarcass: BackJoint;
+  grooveDepth: number; // mm, used for both dado and rabbet
+}
+
 export interface CabinetSpec {
   id: string;
   name: string;
@@ -51,6 +64,11 @@ export interface CabinetSpec {
   doorStyle: DoorStyle;
   doorGap: number;
   backInset: number;
+  joinery: JoineryConfig;
+  // For tall cabinets: fraction of door height occupied by the upper door.
+  // 0 disables the split (single full-height pair).
+  tallUpperFraction: number;
+  tallDoorMidGap: number;
   roomX: number;
   roomZ: number;
   roomRotation: number;

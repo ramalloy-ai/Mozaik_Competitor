@@ -1,12 +1,23 @@
-import { useState } from "react";
+import { Suspense, lazy, useState } from "react";
 import { api, type AuthUser } from "./api";
 import { useProject } from "./store";
-import { AuthView } from "./views/AuthView";
 import { DesignView } from "./views/DesignView";
-import { CutlistView } from "./views/CutlistView";
-import { NestingView } from "./views/NestingView";
-import { QuoteView } from "./views/QuoteView";
-import { ProjectsView } from "./views/ProjectsView";
+
+const CutlistView = lazy(() =>
+  import("./views/CutlistView").then((m) => ({ default: m.CutlistView })),
+);
+const NestingView = lazy(() =>
+  import("./views/NestingView").then((m) => ({ default: m.NestingView })),
+);
+const QuoteView = lazy(() =>
+  import("./views/QuoteView").then((m) => ({ default: m.QuoteView })),
+);
+const ProjectsView = lazy(() =>
+  import("./views/ProjectsView").then((m) => ({ default: m.ProjectsView })),
+);
+const AuthView = lazy(() =>
+  import("./views/AuthView").then((m) => ({ default: m.AuthView })),
+);
 
 type ViewId = "design" | "cutlist" | "nesting" | "quote" | "projects";
 
@@ -18,6 +29,16 @@ const VIEWS: { id: ViewId; label: string }[] = [
   { id: "projects", label: "Projects" },
 ];
 
+function Fallback() {
+  return (
+    <div className="screen">
+      <div className="screen-body">
+        <div className="muted">Loading…</div>
+      </div>
+    </div>
+  );
+}
+
 export function App() {
   const store = useProject();
   const [view, setView] = useState<ViewId>("design");
@@ -26,12 +47,14 @@ export function App() {
 
   if (showAuth && !api.isAuthed()) {
     return (
-      <AuthView
-        onAuthed={(r) => {
-          setUser(r.user);
-          setShowAuth(false);
-        }}
-      />
+      <Suspense fallback={<Fallback />}>
+        <AuthView
+          onAuthed={(r) => {
+            setUser(r.user);
+            setShowAuth(false);
+          }}
+        />
+      </Suspense>
     );
   }
 
@@ -68,26 +91,28 @@ export function App() {
       </div>
 
       <div className="app-body">
-        {view === "design" && <DesignView store={store} />}
-        {view === "cutlist" && <CutlistView store={store} />}
-        {view === "nesting" && <NestingView store={store} />}
-        {view === "quote" && <QuoteView store={store} />}
-        {view === "projects" &&
-          (api.isAuthed() ? (
-            <ProjectsView store={store} onOpened={() => setView("design")} />
-          ) : (
-            <div className="screen">
-              <div className="screen-body">
-                <p>
-                  Log in to save and load projects from the server. Your work is
-                  preserved locally either way.
-                </p>
-                <button className="primary" onClick={() => setShowAuth(true)}>
-                  Log in / Register
-                </button>
+        <Suspense fallback={<Fallback />}>
+          {view === "design" && <DesignView store={store} />}
+          {view === "cutlist" && <CutlistView store={store} />}
+          {view === "nesting" && <NestingView store={store} />}
+          {view === "quote" && <QuoteView store={store} />}
+          {view === "projects" &&
+            (api.isAuthed() ? (
+              <ProjectsView store={store} onOpened={() => setView("design")} />
+            ) : (
+              <div className="screen">
+                <div className="screen-body">
+                  <p>
+                    Log in to save and load projects from the server. Your work
+                    is preserved locally either way.
+                  </p>
+                  <button className="primary" onClick={() => setShowAuth(true)}>
+                    Log in / Register
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+        </Suspense>
       </div>
     </div>
   );

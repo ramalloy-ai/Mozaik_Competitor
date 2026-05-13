@@ -199,6 +199,16 @@ code { background: #15171b; padding: 1px 4px; border-radius: 3px; }
   font-weight: 500;
 }
 
+.warning-banner {
+  background: #3b2b15;
+  border: 1px solid #6b4d23;
+  color: #fcd34d;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+
 .sheet-card {
   background: #20232a;
   border: 1px solid #2a2d33;
